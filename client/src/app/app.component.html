@@ -102,12 +102,6 @@
         <label for="puzzle8">{{ getLevelNumber("IOPuzzle_Balance") }}</label>
       </div>
     </div>
-    <div class="help-buttons">
-      <button class="help-button" (click)="openGameHelp()">Game help</button>
-      <button class="help-button" (click)="openAboutDemo()">
-        About this demo
-      </button>
-    </div>
   </div>
 
   <div id="main-content">
@@ -143,45 +137,6 @@
   </app-popup>
 
   <div id="game-settings">
-    <div class="settings-group">
-      <label class="group-label">Image backend</label>
-      <div class="options-container">
-        <div>
-          <input
-            type="radio"
-            id="gemini"
-            name="imageGenerator"
-            value="gemini"
-            (click)="setConfig('imageGenerator', 'gemini')"
-            [checked]="gameSettings.imageGenerator === 'gemini'"
-          />
-          <label for="gemini" class="option-label">Gemini 2.0 Flash</label>
-        </div>
-        <div>
-          <input
-            type="radio"
-            id="imagen"
-            name="imageGenerator"
-            value="imagen"
-            (click)="setConfig('imageGenerator', 'imagen')"
-            [checked]="gameSettings.imageGenerator === 'imagen'"
-          />
-          <label for="imagen" class="option-label">Imagen 3</label>
-        </div>
-        <div>
-          <input
-            type="radio"
-            id="veo"
-            name="imageGenerator"
-            value="veo"
-            (click)="setConfig('imageGenerator', 'veo')"
-            [checked]="gameSettings.imageGenerator === 'veo'"
-          />
-          <label for="veo" class="option-label">Veo</label>
-        </div>
-      </div>
-    </div>
-
     <div class="settings-group">
       <label class="group-label">Art style</label>
       <div class="options-container">
@@ -231,100 +186,6 @@
         </div>
       </div>
     </div>
-
-    <div class="settings-group">
-      <div class="group-label">Cast spell</div>
-      <div class="options-container">
-        <button class="command-button" (click)="openCommandDialog()">
-          Enter command
-        </button>
-      </div>
-    </div>
   </div>
 
-  <app-dialog
-    [title]="'Cast spell'"
-    [isVisible]="showCommandDialog"
-    [focusElementId]="'text-command'"
-    (closeDialog)="closeCommandDialog()"
-  >
-    <div class="command-input-container">
-      <textarea
-        id="text-command"
-        placeholder="Enter a command..."
-        [(ngModel)]="commandText"
-        (keydown.enter)="handleCommandSubmitted(commandText)"
-        (keydown.meta.enter)="handleCommandSubmitted(commandText)"
-      >
-      </textarea>
-      <button
-        [disabled]="!commandText?.trim()"
-        (click)="handleCommandSubmitted(commandText)"
-      >
-        Cast spell
-      </button>
-    </div>
-  </app-dialog>
-
-  <app-dialog
-    [title]="'How to play'"
-    [isVisible]="showGameHelp"
-    (closeDialog)="closeGameHelp()"
-  >
-    <ol>
-      <li>Select a puzzle from the navigation above</li>
-      <li>Choose your preferred image generation backend and art style</li>
-      <li>Click anywhere to open a canvas and start drawing</li>
-      <li>
-        Whatever you draw will come to life – draw fire, a cloud, a tree...
-      </li>
-      <li>Solve each puzzle by bringing the key to the lock</li>
-    </ol>
-  </app-dialog>
-
-  <app-dialog
-    [title]="'About Living Canvas'"
-    [isVisible]="showAboutDemo"
-    (closeDialog)="closeAboutDemo()"
-  >
-    <ul>
-      <li>
-        Interactive image generation using Vertex AI, Gemini, Imagen, and Veo
-      </li>
-      <li>Angular for the UI</li>
-      <li>Support for multiple art styles and model backends</li>
-      <li>
-        Gemini image analysis for determining what gameplay properties to attach
-      </li>
-      <li>Text to game function translation via Gemini</li>
-      <li>
-        <a
-          target="_blank"
-          href="https://developers.google.com/solutions/learn/living-canvas"
-          >Learn more about this Solution</a
-        >
-      </li>
-      <li>
-        Libraries include:
-        <a target="_blank" href="https://angular.dev/">Angular</a>,
-        <a target="_blank" href="https://phaser.io/">PhaserJS</a>,
-        <a target="_blank" href="https://www.npmjs.com/package/sharp">Sharp</a>,
-        <a target="_blank" href="https://www.npmjs.com/package/ffmpeg">ffmpeg</a
-        >,
-        <a
-          target="_blank"
-          href="https://github.com/FirebaseExtended/solution-living-canvas"
-          >see source code</a
-        >
-        for more.
-      </li>
-      <li>
-        Developed by Tom Greenaway and Ju-yeong Ji at Google with assistance
-        from Monogram.io
-      </li>
-    </ul>
-  </app-dialog>
-</div>
-<script type="module" src="/src/main.ts"></script>
-
-<router-outlet />
+  <router-outlet />

@@ -875,8 +875,8 @@ export class LivingCanvasStage extends Scene {
     });
   }
 
-  extractPropertiesFromGeminiData(rawData: JSON): Object<WorldObjProp> {
-    console.log('Extracting properties from Gemini data:', rawData);
+  extractPropertiesFromGeminiData(rawData: any): Object<WorldObjProp> {
+    console.log('Extracting properties from analysis data:', rawData);
 
     var config = WorldObject.getZeroWorldObjProp();
 
@@ -884,16 +884,28 @@ export class LivingCanvasStage extends Scene {
       return WorldObject.getDefaultWorldObjProp();
     }
 
-    for (const key in config) {
-      //console.log('Considering key', key);
-
-      if (rawData.attributes.indexOf(key) != -1) {
-        console.log('Setting ' + key + ' to true');
-        config[key] = true;
-      }
+    // Handle Ollama response format with properties object
+    if (rawData.properties && typeof rawData.properties === 'object') {
+      console.log('Using Ollama response format with properties object');
+      // rawData.properties is already a properties object
+      return { ...config, ...rawData.properties };
     }
 
-    return config;
+    // Handle legacy Gemini response format with attributes array
+    if (rawData.attributes && Array.isArray(rawData.attributes)) {
+      console.log('Using legacy Gemini response format with attributes array');
+      for (const key in config) {
+        if (rawData.attributes.indexOf(key) != -1) {
+          console.log('Setting ' + key + ' to true');
+          config[key] = true;
+        }
+      }
+      return config;
+    }
+
+    // Fallback to default properties
+    console.warn('Unknown response format, using default properties');
+    return WorldObject.getDefaultWorldObjProp();
   }
 
   // [START send_image_data]
@@ -925,6 +937,58 @@ export class LivingCanvasStage extends Scene {
       return res;
     }
   }
+
+  /**
+   * Analyze drawing using Ollama LLaVA vision model
+   * Returns: { objectType, confidence, description, properties }
+   */
+  async analyzeDrawingWithOllama(b64: string) {
+    const url = this.constructServerUrl('analyze-drawing');
+
+    console.log('Analyzing drawing with Ollama LLaVA...');
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: b64,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Ollama analysis error:', errorData);
+        
+        if (response.status === 503) {
+          // Ollama not available, fall back to template
+          console.warn('Ollama unavailable, using fallback object templates');
+          return null;
+        }
+        
+        return null;
+      }
+
+      const result = await response.json();
+      console.log('Ollama analysis result:', result);
+      
+      if (result.success) {
+        return {
+          type: result.objectType,
+          confidence: result.confidence,
+          description: result.description,
+          properties: result.properties,
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error calling Ollama analysis endpoint:', error);
+      return null;
+    }
+  }
   // [END send_image_data]
 
   async sendToImageGenerationBackend(
@@ -934,7 +998,8 @@ export class LivingCanvasStage extends Scene {
   ) {
     const url = this.constructServerUrl('generateImage');
 
-    console.log('Sending to backend:', generatorType);
+    console.log('🎨 Starting image generation for:', prompt);
+    console.log('Generator type:', generatorType);
 
     try {
       const response = await fetch(url, {
@@ -948,12 +1013,17 @@ export class LivingCanvasStage extends Scene {
           backend: generatorType,
           style: this.gameSettings.visualStyle,
         }),
+        // Note: Browser fetch doesn't support timeout directly, but the server should respond
+        // Image generation can take 30+ seconds on CPU, so we need long timeout on server side
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate image');
+        const errorText = await response.text();
+        console.error('❌ Image generation HTTP error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
+
+      console.log('✅ Image generation completed');
 
       // Handle different response types based on backend
       if (generatorType === 'veo') {
@@ -966,14 +1036,21 @@ export class LivingCanvasStage extends Scene {
       } else {
         // For Imagen and Gemini, we expect base64 text
         const b64 = await response.text();
+        console.log('📦 Received base64 image, size:', b64.length, 'bytes');
+        
         if (b64.startsWith('Error:')) {
-          console.log('Error in sendToImageGenerationBackend', b64);
+          console.error('Error in image generation:', b64);
           throw new Error(b64.substring(6));
         }
+        
+        if (!b64 || b64.length === 0) {
+          throw new Error('Received empty image data');
+        }
+        
         return b64;
       }
     } catch (error) {
-      console.error('Error in image generation:', error);
+      console.error('❌ Error in image generation:', error);
       throw error;
     }
   }
@@ -1025,11 +1102,23 @@ export class LivingCanvasStage extends Scene {
     loadingParticles.startFollow(phaserObj);
 
     try {
-      console.log('Sending canvas to server');
-      const geminiResponse = await this.sendImageDataToServerForAnalysis(
+      console.log('Sending canvas to server for analysis');
+      
+      // Try Ollama LLaVA analysis first (if available)
+      let analysisResponse = await this.analyzeDrawingWithOllama(
         base64ImageData
       );
-      console.log('Gemini analysis response:', geminiResponse);
+      
+      // Fall back to traditional Gemini analysis if Ollama fails
+      if (!analysisResponse) {
+        console.log('Ollama analysis failed, falling back to traditional analysis');
+        analysisResponse = await this.sendImageDataToServerForAnalysis(
+          base64ImageData
+        );
+      }
+      
+      const geminiResponse = analysisResponse;
+      console.log('Drawing analysis response:', geminiResponse);
       let finalProperties = WorldObject.getDefaultWorldObjProp();
 
       if (!geminiResponse) {
@@ -1070,11 +1159,14 @@ export class LivingCanvasStage extends Scene {
       );
 
       // Start generating higher fidelity image
+      console.log('🎨 IMAGE GENERATION: Starting SDXL image generation...');
       const generatedImageData = await this.sendToImageGenerationBackend(
         geminiResponse.type,
         base64ImageData,
         generatorType
       );
+
+      console.log('🎨 IMAGE GENERATION: Image data received, applying to object...');
 
       if (generatedImageData !== null && generatedImageData.shouldRemove) {
         loadingParticles.stop();

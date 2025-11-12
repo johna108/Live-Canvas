@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Local Models Service (Python FastAPI)
+  local-models-service:
+    build:
+      context: ./server/local-models-service
+      dockerfile: Dockerfile
+    container_name: living-canvas-local-models
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_PORT=8000
+      - LLAMA_MODEL_NAME=mistralai/Mistral-7B-Instruct-v0.1
+      - SDXL_MODEL_NAME=stabilityai/stable-diffusion-xl-base-1.0
+      - MODELS_DIR=/app/models
+      - LOG_LEVEL=INFO
+    volumes:
+      # Cache models locally to avoid re-downloading
+      - ./models:/app/models
+    # Uncomment to enable GPU support (requires docker with nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s  # Allow 5 minutes for model download on first run
+    networks:
+      - living-canvas-network
+
+  # Node.js Server
+  node-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.local  # Special Dockerfile for local setup (create this below)
+    container_name: living-canvas-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - LOCAL_MODELS_SERVICE_URL=http://local-models-service:8000
+      - USE_LOCAL_BACKEND=true  # Enable local backend
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - ./generated:/app/generated
+    depends_on:
+      local-models-service:
+        condition: service_healthy
+    networks:
+      - living-canvas-network
+    command: npm run dev
+
+  # Angular Client (optional - normally run separately with ng serve)
+  # Uncomment if you want to run client in Docker too
+  # client:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile.dev
+  #   container_name: living-canvas-client
+  #   ports:
+  #     - "4200:4200"
+  #   volumes:
+  #     - ./client:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     - node-server
+  #   networks:
+  #     - living-canvas-network
+  #   command: ng serve --host 0.0.0.0
+
+networks:
+  living-canvas-network:
+    driver: bridge
+
+volumes:
+  models:
+    driver: local

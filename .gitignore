@@ -1,6 +1,18 @@
 syncRepo.sh
+buildClient.sh
 experiments/*
 server/generated/*
+
+# Model caches (large files)
+server/local-models-service/models/
+server/local-models-service/models-cache/
+server/models/
+*.safetensors
+*.bin
+
+# Generated assets
+server/generated/
+client/public/assets/generated/
 
 # Logs
 logs
@@ -30,3 +42,31 @@ dist-ssr
 
 # Angular clients
 client/.angular
+
+# Python environment
+.venv/
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.VSCode
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+/client/dist/
+/server/dist/
+
+# Environment variables
+.env.local
+.env.*.local
+

@@ -39,7 +39,38 @@ We recommend trying out this project in Firebase Studio. Click this button to la
 > [!NOTE]
 > Enabling billing and deploying services may incur a cost. Follow the steps under [Delete and clean up deployed services](#delete-and-clean-up-deployed-services) to remove any deployed services after trying out this demo.
 
-## Running Locally
+## Getting Started
+
+**📖 See [`docs/INDEX.md`](./docs/INDEX.md) for complete setup and API documentation.**
+
+The project has been upgraded to use **local open-source AI models** instead of Google Cloud services. This means:
+
+- ✅ No API keys or billing needed
+- ✅ Fully offline capable (after model download)
+- ✅ Text generation with Mistral 7B
+- ✅ Image generation with Stable Diffusion XL
+- ✅ Video generation with frame-by-frame synthesis
+
+### Quick Start
+
+**Using Docker (Recommended):**
+```bash
+docker-compose up
+```
+
+**Local Python (Alternative):**
+```bash
+cd server/local-models-service
+pip install -r requirements.txt
+python main.py
+# In another terminal:
+cd server && npm install && npm run dev
+cd client && npm install && ng serve
+```
+
+Access the app at `http://localhost:4200`
+
+### Running the Client and Server (without local models)
 
 ### Client
 

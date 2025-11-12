@@ -34,12 +34,14 @@ import {
 } from "./helpers/veo-generation";
 import { generateImageWithImagen } from "./helpers/imagen-generation";
 import { config } from "./helpers/ai-config-helper";
+import { isLocalBackendEnabled, getLocalModelsServiceUrl } from "./config";
+import { generateImageLocal, analyzeDrawingWithOllama, isOllamaAvailable } from "./helpers/local-models-client";
 
 const { port } = getServerConfig();
 const app = express();
 
-// Error handling middleware
-const errorHandler = (err: Error, _req: Request, res: Response) => {
+// Error handling middleware (must have 4 parameters for Express to recognize as error handler)
+const errorHandler = (err: Error, _req: Request, res: Response, _next: any) => {
   console.error("Error:", err);
   res.status(500).json({
     error: err.message || "Internal server error",
@@ -65,6 +67,15 @@ fs.mkdir("generated", { recursive: true }, (err) => {
   if (err) {
     console.error("Error creating 'generated' directory:", err);
   }
+});
+
+// Health check endpoint
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    service: "living-canvas-server",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Setup static file serving and index route
@@ -131,6 +142,54 @@ app.post("/analyseImage", async (req: Request, res: Response) => {
   }
 });
 
+// New endpoint: Analyze drawing using Ollama LLaVA
+app.post("/analyze-drawing", async (req: Request, res: Response) => {
+  try {
+    const { imageData } = req.body;
+
+    if (!imageData) {
+      return res.status(400).json({ error: "No image data provided" });
+    }
+
+    console.log("Analyzing drawing with Ollama LLaVA...");
+
+    // Check if Ollama is available
+    const ollamaAvailable = await isOllamaAvailable();
+    if (!ollamaAvailable) {
+      console.warn("Ollama not available, returning error");
+      return res.status(503).json({
+        error: "Ollama service not available. Please start Ollama: 'ollama serve'",
+        fallback: true,
+      });
+    }
+
+    // Analyze drawing with Ollama
+    const analysis = await analyzeDrawingWithOllama(imageData);
+
+    console.log("Drawing analysis result:", analysis);
+
+    // Check for inappropriate content
+    if (config.isInappropriateContent(analysis.objectType)) {
+      return res.json(config.getSafetySettingsResponse());
+    }
+
+    // Return structured analysis
+    res.json({
+      success: true,
+      objectType: analysis.objectType,
+      confidence: analysis.confidence,
+      description: analysis.description,
+      properties: analysis.properties,
+    });
+  } catch (error) {
+    console.error("Error in analyze-drawing:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Error analyzing drawing",
+      success: false,
+    });
+  }
+});
+
 // Route for checking error status
 app.get("/checkError/:hash", (req: Request, res: Response) => {
   try {
@@ -187,7 +246,7 @@ app.get("/checkFrames/:hash", (req: Request, res: Response) => {
 
 app.post("/generateImage", async (req: Request, res: Response) => {
   try {
-    console.log("genimage reached ******");
+    console.log("🎨 IMAGE GENERATION ENDPOINT: Request received");
 
     const { prompt, imageData: inputImageData, backend, style } = req.body;
 
@@ -204,6 +263,8 @@ app.post("/generateImage", async (req: Request, res: Response) => {
     const objectType = prompt;
     const visualStylePrompt = style || "realistic";
     const hash = md5(objectType + visualStylePrompt + Date.now());
+
+    console.log(`🎨 Generating image for: "${objectType}" (style: ${visualStylePrompt})`);
 
     const filename = `output_${hash}.png`;
     const filenameTemp = `output_${hash}_temp.png`;
@@ -228,7 +289,43 @@ app.post("/generateImage", async (req: Request, res: Response) => {
       console.error("Error cleaning up existing files:", cleanupError);
     }
     
-    if (backend === "veo") {
+    if (backend === "local" || isLocalBackendEnabled()) {
+      try {
+        const serviceUrl = getLocalModelsServiceUrl();
+        console.log(`⏳ Calling local SDXL service at: ${serviceUrl}`);
+        
+        const base64Image = await generateImageLocal(
+          objectType,
+          visualStylePrompt,
+          filepath
+        );
+
+        console.log(`✅ SDXL generation complete, received ${base64Image.length} bytes`);
+        
+        // Save the base64 image to file
+        const imageBuffer = Buffer.from(base64Image, "base64");
+        fs.writeFileSync(filepath, imageBuffer);
+
+        console.log(`⏳ Processing image (corners, border, resize)...`);
+        // Process the image (rounded corners, border, resize)
+        await applyRoundedCornersAndBorder(filepath, filepathTemp);
+        await resizeImage(filepathTemp, filepathSmall);
+        fs.copyFileSync(filepathSmall, filepath);
+
+        const bitmap = fs.readFileSync(filepathSmall);
+        const result = Buffer.from(bitmap).toString("base64");
+
+        console.log(`✅ IMAGE GENERATION: Complete! Sending ${result.length} bytes to client`);
+        res.send(result);
+        return;
+      } catch (error) {
+        throw new Error(
+          `Local model image generation failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
+    } else if (backend === "veo") {
       try {
         const filenameOriginal = `output_${hash}_original.png`;
         const filepathOriginal = join("generated", filenameOriginal);
@@ -282,6 +379,41 @@ app.post("/generateImage", async (req: Request, res: Response) => {
         visualStylePrompt,
         filepath
       );
+    } else if (!backend) {
+      // If no backend specified and local is enabled, use local
+      if (isLocalBackendEnabled()) {
+        try {
+          const serviceUrl = getLocalModelsServiceUrl();
+          console.log(`No backend specified, using local models: ${serviceUrl}`);
+          
+          const base64Image = await generateImageLocal(
+            objectType,
+            visualStylePrompt,
+            filepath
+          );
+
+          const imageBuffer = Buffer.from(base64Image, "base64");
+          fs.writeFileSync(filepath, imageBuffer);
+
+          await applyRoundedCornersAndBorder(filepath, filepathTemp);
+          await resizeImage(filepathTemp, filepathSmall);
+          fs.copyFileSync(filepathSmall, filepath);
+
+          const bitmap = fs.readFileSync(filepathSmall);
+          const result = Buffer.from(bitmap).toString("base64");
+
+          res.send(result);
+          return;
+        } catch (error) {
+          throw new Error(
+            `Local model image generation failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+        }
+      } else {
+        throw new Error("No backend specified and local backend not enabled");
+      }
     } else {
       throw new Error(`Unsupported backend: ${backend}`);
     }
@@ -343,9 +475,14 @@ app.post("/textToCommand", async (req: Request, res: Response) => {
 // Apply error handling middleware last
 app.use(errorHandler);
 
-// Start the server
-app.listen(port, () => {
+// Increase request timeout for image generation (can take 30+ seconds)
+const server = app.listen(port, () => {
 	console.log(
 		`Application started and Listening on port ${port}. http://localhost:${port}/`
 	);
 });
+
+// Set timeout to 5 minutes for long-running operations like image generation
+server.requestTimeout = 300000; // 5 minutes in milliseconds
+server.timeout = 300000; // 5 minutes
+server.headersTimeout = 320000; // 5.3 minutes (must be >= requestTimeout)
