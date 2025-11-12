@@ -2,7 +2,6 @@
 
 An interactive web-based puzzle game where users draw objects that come to life with physics-based interactions. Powered by **fully local, offline-first AI models** - no cloud dependencies or API keys required.
 
-**Learn more:** https://developers.google.com/solutions/learn/living-canvas
 
 ## 🎮 Game Overview
 
