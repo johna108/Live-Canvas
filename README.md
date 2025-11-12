@@ -1,224 +1,295 @@
-# Living Canvas: A web-based puzzle game powered by Generative AI
+# Living Canvas: An Interactive AI-Powered Game with Local AI Models
 
-This is a demo app that shows how to build an AI-powered web game using Angular, PhaserJS, Gemini, Imagen, Veo and Firebase App Hosting.
+An interactive web-based puzzle game where users draw objects that come to life with physics-based interactions. Powered by **fully local, offline-first AI models** - no cloud dependencies or API keys required.
 
-**Explore the demo and its underlying concepts in more detail on the solutions page at https://developers.google.com/solutions/learn/living-canvas**
+**Learn more:** https://developers.google.com/solutions/learn/living-canvas
 
-Living Canvas is a web-based puzzle game where users draw on the screen to bring objects to life. The drawings are analysed with Gemini and transformed into higher fidelity graphics using Gemini, Imagen and Veo before dropping the graphics into the game world with gameplay properties attached by Gemini.
+## 🎮 Game Overview
 
-*This project is intended for demonstration purposes only. It is not
-intended for use in a production environment.*
+Living Canvas is a creative puzzle game where:
+1. **Draw** objects on the canvas (fire, water, rocks, etc.)
+2. **AI recognizes** your drawing using local vision model (Ollama LLaVA 7B)
+3. **Images generated** using local image model (SDXL-Turbo on GPU)
+4. **Physics simulated** with interactive game mechanics
+5. **Solve puzzles** by using object properties creatively
 
-## Try it out today
+## ✨ Key Features
 
-We recommend trying out this project in Firebase Studio. Click this button to launch the project in Firebase Studio and follow the steps below to get started.
+- ✅ **Fully Offline** - No internet required after initial model download
+- ✅ **GPU Accelerated** - NVIDIA CUDA support for fast generation (~3 seconds/image)
+- ✅ **Local Vision AI** - Ollama LLaVA 7B for drawing analysis
+- ✅ **Local Image Gen** - SDXL-Turbo for high-quality image synthesis
+- ✅ **Physics Engine** - Matter.js with 20+ interactive properties
+- ✅ **Multiple Art Styles** - Realistic, Cartoon, Pixellated, Mask
+- ✅ **Browser-Based** - No installation needed for gameplay
 
-<a href="https://studio.firebase.google.com/import?url=https%3A%2F%2Fgithub.com%2FFirebaseExtended%2Fsolution-living-canvas">
-  <picture>
-    <source
-      media="(prefers-color-scheme: dark)"
-      srcset="https://cdn.firebasestudio.dev/btn/try_dark_32.svg">
-    <source
-      media="(prefers-color-scheme: light)"
-      srcset="https://cdn.firebasestudio.dev/btn/try_light_32.svg">
-    <img
-      height="32"
-      alt="Try in Firebase Studio"
-      src="https://cdn.firebasestudio.dev/btn/try_blue_32.svg">
-  </picture>
-</a>
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js 18+ (for server and client)
+- Python 3.8+ (for image generation service)
+- 16GB+ RAM (8GB minimum for GPU, 24GB+ for CPU)
+- Optional: NVIDIA GPU (RTX 4050+) for faster image generation
 
-1. A new Firebase project
-   - *We recommended using a new Firebase project for this demo. This [simplifies cleanup](#delete-and-clean-up-deployed-services) to avoid incurring on-going costs after trying out this demo app.*
-1. [Activate billing on your Google Cloud / Firebase Project](https://console.cloud.google.com/billing/linkedaccount?project=_)
-1. [Enable Vertex AI and recommended APIs](https://console.cloud.google.com/vertex-ai) in the Google Cloud console.
-1. [Get a Gemini API key for your project in Google AI Studio.](https://aistudio.google.com/app/apikey)
-
-> [!NOTE]
-> Enabling billing and deploying services may incur a cost. Follow the steps under [Delete and clean up deployed services](#delete-and-clean-up-deployed-services) to remove any deployed services after trying out this demo.
-
-## Getting Started
-
-**📖 See [`docs/INDEX.md`](./docs/INDEX.md) for complete setup and API documentation.**
-
-The project has been upgraded to use **local open-source AI models** instead of Google Cloud services. This means:
-
-- ✅ No API keys or billing needed
-- ✅ Fully offline capable (after model download)
-- ✅ Text generation with Mistral 7B
-- ✅ Image generation with Stable Diffusion XL
-- ✅ Video generation with frame-by-frame synthesis
-
-### Quick Start
-
-**Using Docker (Recommended):**
+### Running with Docker (Recommended)
 ```bash
 docker-compose up
 ```
+Access at `http://localhost:4200`
 
-**Local Python (Alternative):**
+### Running Locally
+
+**1. Start Python Image Generation Service:**
 ```bash
 cd server/local-models-service
 pip install -r requirements.txt
 python main.py
-# In another terminal:
-cd server && npm install && npm run dev
-cd client && npm install && ng serve
+# Service will start at http://localhost:8000
 ```
 
-Access the app at `http://localhost:4200`
-
-### Running the Client and Server (without local models)
-
-### Client
-
-```
-cd client
-npm install
-ng serve
-```
-
-### Server
-
-```
+**2. Start Node.js Backend (in new terminal):**
+```bash
 cd server
 npm install
 npm run dev
+# Server will start at http://localhost:3000
 ```
 
-## Running in Firebase Studio
-
-1. Open the project in Firebase Studio.
-1. When prompted, log in with your account.
-1. Add your Google Cloud Project details (project ID, region and API key) to the file `.idx/dev.nix`.
-    * Follow the steps under [Prerequisites](#prerequisites) to set up your Google Cloud project.
-1. Rebuild the environment when prompted.
-1. The app is now ready! Switch to the **Web Preview** to see it in action.
-
-<!-- 
-### Getting started in Firebase Studio
-
-1. Open the project in Firebase Studio.
-1. When prompted, select your Firebase project.
-1. Log into Firebase Hosting. Navigate to the "Firebase Studio" screen and select "Authenticate". Follow the prompts in the terminal.
-1. Prepare your Firebase project by setting up security rules, TTL configuration and functions for cleaning up data:
-   1. Select a Firebase project: `firebase use`.
-   2. Deploy Firestore, Storage and Functions: `firebase deploy --only firestore,storage,functions`
-   3. Follow any additional prompts to set up access and grant permissions.
-   4. You may need to grant the *Logs Writer* permission.
-1. Configure Firebase for the Angular frontend app.
-   1. Navigate to the Firebase console, create a new web client and donwload the configuration file for your project.
-   1. Add the configuration into the file `client/web/angular-customer-app/src/environments/environment.development.ts`.
-1. The app is now ready! Switch to the **Web Preview** to see it in action.
-
-### Getting started locally
-
-You can run the application locally and access Firebase and Google Cloud directly.
-
-#### Local Prerequisites
-
-1. Set up the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install-sdk).
-1. Set up the [Firebase CLI](https://firebase.google.com/docs/cli).
-1. Set up [Application Default Credentials (ADC) for a local development environment](https://cloud.google.com/docs/authentication/set-up-adc-local-dev-environment)
-
-Follow the steps in [services/cloud-run](services/cloud-run), [client/web/angular-customer-app](client/web/angular-customer-app) and [services/local-recommendation](services/local-recommendation) to run each component.
-
-## Demo and code overview
-
-This project consists of two main parts:
-
-* [client/web/angular-customer-app](client/web/angular-customer-app/): The frontend customer ordering app, built with Angular.
-* [services/cloud-run/](services/cloud-run/): The backend, built with Genkit, Vertex AI, Firestore, Clound Run and Cloud Storage for Firebase.
-
-Two additional systems provide some additional services:
-
-* [services/functions](services/functions/): Cloud Functions for Firebase to handle clean up of data stored in Cloud Storage.
-* [services/local-recommendation](services/local-recommendation/): A simple HTTP-service that returns a drink recommendation from a fixed list of beverages.
-
-## Demo walkthrough and examples
-
-Once the application is up and running, talk to the agent to assemble and submit a beverage order.
-
-Here are some example messages to try.
-
-### Orders
-
-```text
-I want to order a latte with oat milk and double shots.
-Add 1 latte, regular milk, 1 shot, no sweeteners to the order.
-Order a cappucino with almond milk and extra sugar.
-I'd like a decaf almond cappuccino, double shots with chocolate sauce.
-Add a cortado with with quadruple shots, iced, regular milk and a Matcha Latte with extra foam, hazelnut sauce and sugar free vanilla sweetener.
-Order 1 latte with oat milk, 2 shots and a latte, regular milk, 1 shot with sugar.
-``` 
-
--->
-
-## Deploying the app
-
-You can deploy the backend and the frontend directly from Firebase Studio. Follow the on the "Firebase Studio" screen to deploy the app to Firebase App Hosting.
-
-Create an apphosting.yaml file and configure it based on the example.apphosting.yaml file in the root of the project.
-
-`firebase apphosting:backends:create --project PROJECT_ID --location us-central1`
-
-
-
-## Delete and clean up deployed services
-
-To avoid continued billing for the resources that you have created as part of trying out this demo app, delete the Firebase project or disable the deployed services.
-
-If you have created a new project to test this app, follow [these steps to delete the project](https://support.google.com/firebase/answer/9137886?hl=en) through the Firebase console.
-
-Alternatively, if you followed the steps to deploy Cloud Firestore, Functions and Cloud Storage for Firebase to an existing project, follow these steps to remove them manually through the console:
-* [Delete data from Cloud Firestore](https://firebase.google.com/docs/firestore/using-console#delete_data)
-* [Delete Cloud Functions](https://firebase.google.com/docs/functions/manage-functions?gen=2nd#delete_functions)
-* [Delete Cloud Storage](https://firebase.google.com/docs/storage/manage-stored-files#delete)
-* [Delete Cloud Run services](https://cloud.google.com/run/docs/managing/services#delete)
-
-## Additional Information
-
-This app is not an officially supported Google Product.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- 
-
-# Folder Structure
-
-- **client**: client app development, using Angular and PhaserJS
-- **server**: server that serves the application, using Express.js
-
-## Google Cloud project setup
-
-Install the GCloud SDK to have access to GCloud on the command-line: https://cloud.google.com/sdk/docs/install
-
-Via the Google Cloud console, create a project:
-- https://console.cloud.google.com/welcome
-- And enable the Gemini API: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?
-- And enable the Vertex API: https://console.cloud.google.com/apis/library/aiplatform.googleapis.com
-
-Back in the terminal console, authenticate with GCloud to connect the Cloud project to the server app on the command-line:
+**3. Start Ollama Vision Service (in new terminal):**
+```bash
+ollama run llava:7b
+# Service will start at http://localhost:11434
 ```
-gcloud auth login
-gcloud config set project PROJECT_ID
-``` -->
+
+**4. Start Angular Frontend (in new terminal):**
+```bash
+cd client
+npm install
+ng serve
+# App will be available at http://localhost:4200
+```
+
+## 📋 System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Browser (Angular 19)                       │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Game Canvas (Phaser 3) + Drawing Interface          │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+         ↓ REST API (Draw) ↓ POST /analyze-drawing
+┌─────────────────────────────────────────────────────────────┐
+│           Node.js Express Server (localhost:3000)            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Request Orchestration & Game Logic                  │  │
+│  │ Timeouts: 180-300 seconds for long operations      │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+    ↓           ↓              ↓
+    │           │              │
+    ↓           ↓              ↓
+┌──────────────┐ ┌──────────────┐ ┌──────────────────────────┐
+│   Ollama     │ │ Python Fast  │ │ HuggingFace Model Cache  │
+│  LLaVA 7B    │ │  API SDXL    │ │ (~9.45 GB, cached)       │
+│  Drawing     │ │  Turbo GPU   │ │                          │
+│  Analysis    │ │  Image Gen   │ │ - SDXL-Turbo fp16        │
+│              │ │              │ │ - VAE, Text Encoder      │
+│ 2-3 seconds  │ │ 2-3 seconds  │ │                          │
+│  (CPU)       │ │  (GPU)       │ │ Downloaded once,         │
+│              │ │              │ │ cached for reuse         │
+└──────────────┘ └──────────────┘ └──────────────────────────┘
+```
+
+## 🎯 Game Mechanics
+
+### Object Properties System
+
+Each generated object gets 20+ properties that affect gameplay:
+
+| Category | Properties |
+|----------|-----------|
+| **Movement** | walks, drives, flies, hovers, propelled |
+| **Physics** | falls, floats, heavy, solid, drips, douses |
+| **Effects** | burns, explodes, blows, lightning, heal |
+| **Materials** | wooden, metal, ice, magnetic |
+| **Special** | user_generated_obj, generating |
+
+### Example Objects
+
+- **Fire/Candle**: `burns=true, falls=true, solid=true`
+- **Water**: `drips=true, douses=true, falls=true, solid=false`
+- **Cloud**: `floats=true, falls=false, solid=false`
+- **Rock**: `falls=true, heavy=true, solid=true`
+- **Wind**: `blows=true, falls=false, solid=false`
+
+### Puzzle Types
+
+1. **Fire Slope** - Use gravity to slide objects
+2. **Windy** - Navigate wind-blown objects
+3. **Ice** - Slippery surfaces challenge
+4. **Metal** - Magnetic field puzzles
+5. **Rain** - Water accumulation mechanics
+6. **Lightning** - Electrical effects
+7. **Balance** - Weight distribution puzzles
+
+## 🔧 Performance
+
+| Metric | Value |
+|--------|-------|
+| **Total Pipeline** | 5-7 seconds (analyze + generate + render) |
+| **Ollama Analysis** | 2-3 seconds (CPU) |
+| **SDXL Generation** | 2-3 seconds (GPU: RTX 4050) |
+| **Model Download** | 15-30 minutes (first time only) |
+| **Model Cache Size** | ~9.45 GB (one-time download) |
+| **Runtime Memory** | 4-5 GB GPU + system RAM |
+
+### GPU vs CPU
+
+- **GPU (RTX 4050)**: 2.95 seconds per image ⚡
+- **CPU**: 29+ seconds per image 🐢
+- **Speed Improvement**: 10x faster with GPU
+
+## 📦 Technology Stack
+
+### Frontend
+- **Framework**: Angular 19
+- **Game Engine**: Phaser 3
+- **Canvas**: HTML5 Canvas
+- **Physics**: Matter.js
+
+### Backend
+- **Server**: Node.js + Express.js
+- **Image Generation**: Python FastAPI
+- **Vision Analysis**: Ollama LLaVA 7B
+- **Image Model**: SDXL-Turbo
+- **Deep Learning**: PyTorch 2.5.1 + CUDA 12.1
+
+### Infrastructure
+- **Caching**: HuggingFace local cache
+- **Containerization**: Docker & Docker Compose
+- **Package Management**: npm, pip, pnpm
+
+## 🎨 Art Styles
+
+Switch between visual styles for the same object:
+- **Realistic** - Photorealistic rendering
+- **Cartoon** - Stylized cartoon art
+- **Pixellated** - Retro pixel art
+- **Mask** - Puzzle game masks
+
+## 📚 Project Structure
+
+```
+solution-living-canvas/
+├── client/                          # Angular game frontend
+│   ├── src/game/                   # Phaser game scenes & objects
+│   │   ├── scenes/                 # Game stages (Earth, Moon, Space, etc.)
+│   │   ├── objects/                # WorldObject physics properties
+│   │   └── LivingCanvas.ts         # Main game orchestration
+│   └── src/app/                    # Angular components
+│
+├── server/                          # Node.js backend
+│   ├── app.ts                      # Express server & routes
+│   ├── config.ts                   # Configuration management
+│   ├── helpers/                    # Utility functions
+│   │   ├── local-models-client.ts  # SDXL-Turbo integration
+│   │   ├── cache-manager.ts        # Model caching logic
+│   │   └── image-processing.ts     # Image transformations
+│   └── local-models-service/       # Python FastAPI service
+│       ├── main.py                 # SDXL-Turbo API endpoints
+│       ├── Dockerfile              # Container image
+│       └── requirements.txt         # Python dependencies
+│
+├── docker-compose.yml              # Multi-service orchestration
+├── METHODOLOGY.md                  # Detailed technical breakdown
+└── README.md                        # This file
+```
+
+## 🔐 No Cloud Dependencies
+
+Unlike the original implementation, this version requires **zero cloud services**:
+
+- ❌ No Google Cloud Project needed
+- ❌ No Gemini API key required
+- ❌ No Imagen 3 billing
+- ❌ No Veo video generation service
+- ✅ Everything runs locally on your machine
+
+## 🛠️ Development
+
+### Build Client
+```bash
+cd client
+npm run build
+```
+
+### Build Server
+```bash
+cd server
+npm run build
+```
+
+### Run Tests
+```bash
+cd client
+npm test
+
+cd server
+npm test
+```
+
+## 📖 Documentation
+
+- **[METHODOLOGY.md](./METHODOLOGY.md)** - Complete technical architecture
+- **[QUICKSTART.md](./docs/QUICKSTART.md)** - Detailed setup guide
+- **[docs/](./docs/)** - Additional documentation
+
+## 🐛 Troubleshooting
+
+### "CUDA out of memory"
+- Enable GPU memory optimizations (attention slicing, VAE slicing)
+- Reduce image resolution (512x512 vs 1024x1024)
+- Use CPU fallback (slower but works)
+
+### "Model not found"
+- First run will download ~9.45 GB of models
+- Check internet connection
+- Verify HF_HOME directory has write permissions
+
+### "Port already in use"
+- Change port in environment variables
+- Or kill existing process: `lsof -i :3000`
+
+## 🚀 Deployment
+
+### Docker Compose (Recommended)
+```bash
+docker-compose up -d
+```
+
+### Kubernetes
+See `docker-compose.yml` for service configuration to convert to K8s manifests.
+
+### Manual
+Follow the "Running Locally" section above.
+
+## 📝 License
+
+Licensed under the Apache License 2.0. See [LICENSE.txt](./LICENSE.txt)
+
+## 👨‍💻 Contributing
+
+Contributions welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## 📧 Support
+
+This is a demonstration project. For issues, please:
+1. Check [METHODOLOGY.md](./METHODOLOGY.md) for architecture details
+2. Review terminal logs for error messages
+3. Ensure all services are running on correct ports
+
+---
+
+**Built with ❤️ for creative AI gaming**
+
