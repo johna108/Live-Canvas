@@ -26,13 +26,6 @@ import {
   applyRoundedCornersAndBorder,
   resizeImage,
 } from "./helpers/image-processing";
-import { imageToConfig, textToCommand } from "./helpers/ai-analysis";
-import { generateImageWithGemini } from "./helpers/gemini-generation";
-import {
-  generateStaticImage,
-  generateVideoAndFrames,
-} from "./helpers/veo-generation";
-import { generateImageWithImagen } from "./helpers/imagen-generation";
 import { config } from "./helpers/ai-config-helper";
 import { isLocalBackendEnabled, getLocalModelsServiceUrl } from "./config";
 import { generateImageLocal, analyzeDrawingWithOllama, isOllamaAvailable } from "./helpers/local-models-client";
@@ -107,40 +100,10 @@ app.get("/resources/:file", async (req: Request, res: Response) => {
   }
 });
 
-// Route for analysing images
-app.post("/analyseImage", async (req: Request, res: Response) => {
-  try {
-    if (!validateImageRequest(req, res)) return;
-
-    console.log("req body", req.body);
-
-    const imageData = req.body.prompt || null;
-    if (!imageData) {
-      res.status(400).json({ error: "No image data provided" });
-      return;
-    }
-
-    const trimmedData = imageData.slice(22);
-    if (!trimmedData) {
-      res.status(400).json({ error: "Invalid image data format" });
-      return;
-    }
-
-    const response = await imageToConfig(trimmedData);
-    
-    console.log("response", response);
-
-    // Check for inappropriate content in the response if safety settings are not triggered
-    if (response.type && config.isInappropriateContent(response.type)) {
-      return res.json(config.getSafetySettingsResponse());
-    }
-
-    res.send(response);
-  } catch (error) {
-    console.log("Error in analyseImage", error);
-    throw new Error("Error in analyseImage");
-  }
-});
+// Route for analysing images - LEGACY (use /analyze-drawing instead)
+// app.post("/analyseImage", async (req: Request, res: Response) => {
+//   // This endpoint is deprecated - use /analyze-drawing with Ollama instead
+// });
 
 // New endpoint: Analyze drawing using Ollama LLaVA
 app.post("/analyze-drawing", async (req: Request, res: Response) => {
@@ -326,59 +289,11 @@ app.post("/generateImage", async (req: Request, res: Response) => {
         );
       }
     } else if (backend === "veo") {
-      try {
-        const filenameOriginal = `output_${hash}_original.png`;
-        const filepathOriginal = join("generated", filenameOriginal);
-
-        const { processedImage } = await generateStaticImage(
-          objectType,
-          visualStylePrompt,
-          filepath,
-          filepathSmall,
-          filepathOriginal
-        );
-
-        res.json({ hash, processedImage });
-
-        // Start video generation in background
-        generateVideoAndFrames(hash, filepathOriginal).catch((err) => {
-          console.error("Error with video/frames generation:", err);
-          // Create error file for frontend
-          const errorFile = join("generated", `error_${hash}.json`);
-          fs.writeFileSync(
-            errorFile,
-            JSON.stringify({
-              error:
-                err instanceof Error ? err.message : "Failed to generate video",
-              timestamp: new Date().toISOString(),
-            })
-          );
-        });
-
-        fs.copyFileSync(filepathSmall, filepath);
-        return;
-      } catch (error) {
-        throw new Error(
-          `Veo image generation failed: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`
-        );
-      }
+      throw new Error("Veo backend is no longer supported - use 'local' backend instead");
     } else if (backend === "gemini") {
-      await generateImageWithGemini(
-        "gemini_generation",
-        objectType,
-        inputImageData || "",
-        visualStylePrompt,
-        filepath
-      );
+      throw new Error("Gemini backend is no longer supported - use 'local' backend instead");
     } else if (backend === "imagen") {
-      await generateImageWithImagen(
-        "imagen_generation",
-        objectType,
-        visualStylePrompt,
-        filepath
-      );
+      throw new Error("Imagen backend is no longer supported - use 'local' backend instead");
     } else if (!backend) {
       // If no backend specified and local is enabled, use local
       if (isLocalBackendEnabled()) {
@@ -445,32 +360,10 @@ app.post("/generateImage", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/textToCommand", async (req: Request, res: Response) => {
-  try {
-    const textCommand = req.body.command || null;
-    const currentTargets = req.body.currentTargets || null;
-
-    if (!textCommand) {
-      res.status(400).json({ error: "Command text is required" });
-      return;
-    }
-
-    console.log(
-      "textToCommand: ",
-      textCommand,
-      " possible targets: ",
-      currentTargets
-    );
-
-    const result = await textToCommand(textCommand, currentTargets);
-    console.log(result);
-
-    res.send(result);
-  } catch (error) {
-    console.log("Error in textToCommand", error);
-    throw new Error("Error in textToCommand");
-  }
-});
+// LEGACY: Text to Command endpoint (commented out - requires deleted ai-analysis.ts)
+// app.post("/textToCommand", async (req: Request, res: Response) => {
+//   // This endpoint is deprecated
+// });
 
 // Apply error handling middleware last
 app.use(errorHandler);

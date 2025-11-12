@@ -80,9 +80,49 @@ interface CacheConfig {
   cacheDir: string;
 }
 
-const aiConfig: AIConfig = JSON.parse(
-  fs.readFileSync("./ai-config.json", "utf8")
-);
+const defaultAIConfig: AIConfig = {
+  prompts: {},
+  models: {},
+  types: [],
+  attributes: [],
+  verbs: [],
+  visualStyles: [
+    { id: "realistic", prompt: "realistic style" },
+    { id: "cartoon", prompt: "cartoon style" },
+    { id: "pixellated", prompt: "pixellated style" },
+  ],
+  buildPrompt,
+  stringTemplateParser,
+  safetySettings: {
+    categories: [],
+    defaultThreshold: "BLOCK_NONE",
+    thresholds: {},
+  },
+  inappropriateKeywords: ["violence", "adult", "explicit"],
+  safetySettingsResponse: {
+    type: "__BLOCKED__",
+    attributes: [],
+    shouldRemove: true,
+  },
+  cache: {
+    enabled: true,
+    poolSize: 4,
+    cacheDir: "generated/cache",
+  },
+};
+
+// Try to load ai-config.json if it exists, otherwise use defaults
+let aiConfig: AIConfig = defaultAIConfig;
+try {
+  if (fs.existsSync("./ai-config.json")) {
+    aiConfig = {
+      ...defaultAIConfig,
+      ...JSON.parse(fs.readFileSync("./ai-config.json", "utf8")),
+    };
+  }
+} catch (error) {
+  console.warn("Could not load ai-config.json, using defaults:", error instanceof Error ? error.message : "Unknown error");
+}
 
 function stringTemplateParser(
   expression: string,
