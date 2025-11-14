@@ -1,9 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { config } from "./ai-config-helper";
-import { generateImageBuffer } from "./imagen-generation";
 
-export type GenerationType = "imagen" | "gemini" | "veo";
+export type GenerationType = "local" | "cached";
 
 interface CacheConfig {
 	enabled: boolean;
@@ -75,45 +74,18 @@ export const cacheManager = {
 	},
 
 	async preloadCache(objectType: string, visualStyle: string): Promise<void> {
-		// Silently return if cache is disabled
+		// Preloading disabled for local SDXL-Turbo models
+		// Models are cached in HuggingFace cache, not in this local cache
 		if (!this.config.enabled) return;
-
-		try {
-			// Check if we already have a full pool
-			const availableVariations: number[] = [];
-			for (let i = 0; i < this.config.poolSize; i++) {
-				const cacheKey = getCacheKey(objectType, visualStyle, i, "imagen");
-				const cachePath = getCachePath(this.paths.cacheDir, cacheKey);
-				if (fs.existsSync(cachePath)) {
-					availableVariations.push(i);
-				}
-			}
-
-			// If we already have a full pool, no need to preload
-			if (availableVariations.length === this.config.poolSize) {
-				return;
-			}
-
-			// Generate images until we have a full pool
-			for (let i = availableVariations.length; i < this.config.poolSize; i++) {
-				try {
-					const base64Image = await generateImageBuffer(objectType, visualStyle);
-					await this.cacheImage(objectType, visualStyle, base64Image);
-				} catch (error) {
-					// Log error but continue trying to preload
-					console.error(`Failed to preload variation ${i} for ${objectType} in ${visualStyle} style:`, error);
-				}
-			}
-		} catch (error) {
-			// Log error but don't throw
-			console.error(`Error in preloadCache for ${objectType} in ${visualStyle} style:`, error);
-		}
+		
+		console.log(`Cache preloading disabled for local models (objectType: ${objectType}, style: ${visualStyle})`);
+		return;
 	},
 
 	async getCachedImage(
 		objectType: string,
 		visualStyle: string,
-		generationType: GenerationType = "imagen"
+		generationType: GenerationType = "local"
 	): Promise<CacheResult> {
 		if (!this.config.enabled) {
 			return { success: false, error: "Cache is disabled" };
@@ -134,15 +106,9 @@ export const cacheManager = {
 
 			// If we have a full pool, randomly select one
 			if (availableVariations.length === this.config.poolSize) {
-				// For VEO generation, always use the first variation (variation 0)
-				let selectedVariation: number;
-				if (generationType === "veo") {
-					selectedVariation = 0;
-				} else {
-					// Randomly select from available variations
-					const randomIndex = Math.floor(Math.random() * availableVariations.length);
-					selectedVariation = availableVariations[randomIndex];
-				}
+				// Randomly select from available variations
+				const randomIndex = Math.floor(Math.random() * availableVariations.length);
+				const selectedVariation = availableVariations[randomIndex];
 
 				console.log(`Selected variation ${selectedVariation} from full pool of ${availableVariations.length} variations`);
 
@@ -174,7 +140,7 @@ export const cacheManager = {
 		objectType: string,
 		visualStyle: string,
 		base64Image: string,
-		generationType: GenerationType = "imagen"
+		generationType: GenerationType = "local"
 	): Promise<CacheResult> {
 		if (!this.config.enabled) {
 			return { success: false, error: "Cache is disabled" };
